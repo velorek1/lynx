@@ -2,7 +2,7 @@
 A TUI with a double screen buffer for terminals
 
 - To compile:
-*Clone or download repository.
-*"cd lynx"
-*"make"
-*"./demo"
+
+    * Download or clone repository.
+    * Type "cd lynx", "make" and "./lynx" to execute.
+    * Alternatively "bash build.sh" and "./lynx" to execute.
