@@ -11,6 +11,7 @@ demo: $(obj)
 
 clean:
 	rm -f demo $(obj)
+
 demo.o: demo.c scbuf.h rterm.h tm.h
 scbuf.o: scbuf.c rterm.h scbuf.h
 tm.o: tm.c tm.h
