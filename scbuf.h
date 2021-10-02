@@ -43,6 +43,7 @@ void update_ch(int x, int y, wchar_t ch, char backcolor, char forecolor);
 void update_screen(SCREENCELL *newScreen);
 void write_ch(SCREENCELL *newScreen, int x, int y, wchar_t ch, char backcolor, char forecolor);
 wchar_t read_char(SCREENCELL *newScreen, int x, int y);
+SCREENCELL read_cell(SCREENCELL *newScreen, int x, int y);
 void write_str(SCREENCELL *newScreen, int x, int y, char *str, char backcolor, char forecolor);
 int write_num(SCREENCELL *newScreen, int x, int y, int num, char backcolor,
 	       char forecolor);

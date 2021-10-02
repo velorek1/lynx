@@ -187,6 +187,31 @@ void write_ch(SCREENCELL *newScreen, int x, int y, wchar_t ch, char backcolor, c
   }
 }
 
+SCREENCELL read_cell(SCREENCELL *newScreen, int x, int y) {
+/* read specific character with attributes from buffer */
+  int     i=0, pos=0;
+  SCREENCELL *aux=newScreen;
+  SCREENCELL ret;
+  if (aux != NULL && buffersize <= length(&aux)){
+    pos = (y - 1) * sc_columns + x;	//this is the formula to calculate the position index in the screen buffer
+   if(pos < buffersize) {
+    for(i = 0; i <= pos; i++) {
+        //run through the buffer until reaching desired position
+        if(aux->index == pos)
+	  break;
+        aux = aux->next;
+    }
+    ret.index = aux->index;
+    ret.ch = aux->ch;
+    //for some unknown reason these values have to be inverted
+    ret.backColor = aux->foreColor;
+    ret.foreColor = aux->backColor;
+    ret.next = NULL;
+   }
+ }
+  return ret;
+}
+
 
 wchar_t read_char(SCREENCELL *newScreen, int x, int y) {
 /* read specific character from buffer */
@@ -296,8 +321,9 @@ void xor_update(SCREENCELL *screen1, SCREENCELL *screen2) {
   SCREENCELL *aux2=screen2;
   if ((aux1!=NULL && aux2!=NULL) && (length(&aux1) == length(&aux2))){
    for(i = 0; i < buffersize; i++) {
-     if (aux1->ch != aux2->ch || aux1-> backColor != aux2 -> backColor || aux1-> foreColor != aux2 -> foreColor) 
-       update_ch(wherex,wherey,aux1->ch,aux1->backColor,aux1->foreColor); 
+     if (aux1->ch != aux2->ch || aux1-> backColor != aux2 -> backColor || aux1-> foreColor != aux2 -> foreColor){ 
+       update_ch(wherex,wherey,aux1->ch,aux1->backColor,aux1->foreColor);
+      } 
       wherex = wherex + 1; //line counter
       if(wherex == sc_columns) {
         //new line
@@ -309,6 +335,7 @@ void xor_update(SCREENCELL *screen1, SCREENCELL *screen2) {
     }
   }
 }
+
 
 void xor_copy(SCREENCELL *screen1, SCREENCELL *screen2) {
 /* UPDATES ALL SCREEN CELLS TO DISPLAY */

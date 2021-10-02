@@ -70,6 +70,18 @@ Last modified: 15/09/2021 + Linux Term
 #define TRUE 1
 #define FALSE 0
 
+//Keys used.
+#define K_ENTER 13
+#define K_ENTER2 10
+#define K_ESCAPE 27
+#define K_UP_TRAIL "\e[A\0\0"
+#define K_DOWN_TRAIL "\e[B\0\0"
+#define K_RIGHT_TRAIL "\e[C\0\0"
+#define K_LEFT_TRAIL "\e[D\0\0"
+
+
+//#define K_UP_ARROW 'A'      // K_ESCAPE + 'A' -> UP_ARROW
+//#define K_DOWN_ARROW 'B'    // K_ESCAPE + 'B' -> DOWN_ARROW
 typedef int BOOL;
 
 /*====================================================================*/
@@ -92,4 +104,5 @@ void    showcursor();
 void    hidecursor();
 void    init_term();
 void    close_term();
+int     read_keytrail(char chartrail[5]);
 #endif
