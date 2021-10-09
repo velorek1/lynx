@@ -141,8 +141,8 @@ int keypressed = 0;
               tick();
            }
         
-           if (ch=='a') {stop_timer(&timer1); update_screen(screen1);}
-           if (ch=='b') {stop_timer(&timer1); update_screen(screen2);}
+           if (ch=='a') {stop_timer(&timer1); dump_screen(screen1);}
+           if (ch=='b') {stop_timer(&timer1); dump_screen(screen2);}
            if (ch=='c') {if (timer1.ticks != -1) stop_timer(&timer1); else init_timer(&timer1,timer_speed);}
            if (ch=='d') {dump_screen(screen1); if (TEST == TRUE) TEST= FALSE; else TEST = TRUE;}
            if (ch=='+') {timer_speed += 10; init_timer(&timer1,timer_speed);}
