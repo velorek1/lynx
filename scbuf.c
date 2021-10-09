@@ -21,6 +21,7 @@ SCREENCELL *newelement(SCREENCELL temp)
 	newp->index = temp.index;
 	newp->backColor = temp.backColor;
 	newp->foreColor = temp.foreColor;
+        newp->toUpdate = 0;
 	newp->ch = temp.ch;
         newp->next = NULL;
 	return newp;
@@ -162,7 +163,7 @@ void update_ch(int x, int y, wchar_t ch, char backcolor, char forecolor) {
    printf("%lc", ch);  //unicode
 }
 
-void write_ch(SCREENCELL *newScreen, int x, int y, wchar_t ch, char backcolor, char forecolor) {
+void write_ch(SCREENCELL *newScreen, int x, int y, wchar_t ch, char backcolor, char forecolor,BOOL raw) {
 /* Update cell on screenbuffer. It will be shown on screen when it is updated by calling update_screen */
   int     i, pos;
 
@@ -183,6 +184,12 @@ void write_ch(SCREENCELL *newScreen, int x, int y, wchar_t ch, char backcolor, c
         aux->ch = ch;
         aux->backColor = backcolor;
         aux->foreColor = forecolor;
+        aux->toUpdate = 1;
+        if(raw==TRUE) {
+   		gotoxy(x+1, y);
+   		outputcolor(forecolor, backcolor);
+   		printf("%lc", ch);  //unicode
+         }
     }
   }
 }
@@ -237,7 +244,7 @@ wchar_t read_char(SCREENCELL *newScreen, int x, int y) {
 /* Writes a string of characters to buffer. */
 /*------------------------------------------*/
 
-void write_str(SCREENCELL *newScreen, int x, int y, char *str, char backcolor, char forecolor) {
+void write_str(SCREENCELL *newScreen, int x, int y, char *str, char backcolor, char forecolor, BOOL raw) {
   //Writes a string of characters to buffer.
   char   *astr=NULL;
   size_t     i=0;
@@ -248,7 +255,7 @@ void write_str(SCREENCELL *newScreen, int x, int y, char *str, char backcolor, c
     wherex = x;
     astr = str;
     for(i = 0; i <= strlen(str) - 1; i++) {
-      write_ch(aux, wherex, y, astr[i], backcolor, forecolor);
+      write_ch(aux, wherex, y, astr[i], backcolor, forecolor,raw);
       wherex = wherex + 1;
     }
  }
@@ -259,7 +266,7 @@ void write_str(SCREENCELL *newScreen, int x, int y, char *str, char backcolor, c
 /*-----------------------------------------------*/
 
 int write_num(SCREENCELL *newScreen, int x, int y, int num, char backcolor,
-	       char forecolor) {
+	       char forecolor, BOOL raw) {
   //the length of the string must be passed on the function
   char   astr[30];
   char len=0;
@@ -267,7 +274,7 @@ int write_num(SCREENCELL *newScreen, int x, int y, int num, char backcolor,
 
   if (aux!=NULL){
     sprintf(astr, "%d", num);
-    write_str(newScreen, x, y, astr, backcolor, forecolor);
+    write_str(newScreen, x, y, astr, backcolor, forecolor,raw);
     len = strlen(astr);
   }
   return len;
@@ -284,6 +291,7 @@ void screen_color(SCREENCELL *newScreen, char bcolor, char fcolor, wchar_t ch) {
       aux->backColor = bcolor;
       aux->foreColor = fcolor;
       aux->ch = ch;
+      aux->toUpdate = 1;
       aux = aux->next;
     }
  }
@@ -294,7 +302,7 @@ void screen_color(SCREENCELL *newScreen, char bcolor, char fcolor, wchar_t ch) {
 /*------------------------------------*/
 
 
-void update_screen(SCREENCELL *newScreen) {
+void dump_screen(SCREENCELL *newScreen) {
 /* UPDATES ALL SCREEN CELLS TO DISPLAY */
   int     i=0;
   int     wherex=0, wherey=0;
@@ -312,6 +320,26 @@ void update_screen(SCREENCELL *newScreen) {
     }
   }
 }
+
+void update_screen(SCREENCELL *newScreen) {
+/* UPDATES ALL SCREEN CELLS TO DISPLAY */
+  int     i=0;
+  int     wherex=0, wherey=0;
+  SCREENCELL *aux=newScreen;
+  if (aux!=NULL && buffersize <= length(&aux)){
+  for(i = 0; i < buffersize; i++) {
+      if (aux->toUpdate ==1) update_ch(wherex,wherey,aux->ch,aux->backColor,aux->foreColor); 
+      wherex = wherex + 1; //line counter
+      if(wherex == sc_columns) {
+        //new line
+        wherex = 0;
+        wherey = wherey + 1;
+      }
+      aux = aux->next;
+    }
+  }
+}
+
 
 void xor_update(SCREENCELL *screen1, SCREENCELL *screen2) {
 /* UPDATES ALL SCREEN CELLS TO DISPLAY */
@@ -369,7 +397,7 @@ void xor_copy(SCREENCELL *screen1, SCREENCELL *screen2) {
 /* Draw window area with or without border. */
 /*------------------------------------------*/
 
-void draw_window(SCREENCELL *newScreen, int x1, int y1, int x2, int y2, int backcolor, int bordercolor, int titlecolor, BOOL  border, BOOL title, BOOL shadow) {
+void draw_window(SCREENCELL *newScreen, int x1, int y1, int x2, int y2, int backcolor, int bordercolor, int titlecolor, BOOL  border, BOOL title, BOOL shadow, BOOL raw) {
 /*
    Draw a box on screen
  */
@@ -385,35 +413,35 @@ void draw_window(SCREENCELL *newScreen, int x1, int y1, int x2, int y2, int back
     {
       ch=read_char(aux, i,j); //dynamic shadow
       if (ch=='\0') ch=FILL_CHAR;
-      write_ch(aux, i, j, ch, B_BLACK, F_WHITE);
+      write_ch(aux, i, j, ch, B_BLACK, F_WHITE,raw);
     }
   }
   //window
   for(j = y1; j <= y2; j++)
     for(i = x1; i <= x2; i++)
-      write_ch(aux, i, j, FILL_CHAR, backcolor, bordercolor);
+      write_ch(aux, i, j, FILL_CHAR, backcolor, bordercolor,raw);
  
  //borders
   if(border == TRUE) {
     for(i = x1; i <= x2; i++) {
       //upper and lower borders
-      write_ch(aux, i, y1, HOR_LINE, backcolor, bordercolor);   //horizontal line box-like char
-      write_ch(aux, i, y2, HOR_LINE, backcolor, bordercolor);
+      write_ch(aux, i, y1, HOR_LINE, backcolor, bordercolor,raw);   //horizontal line box-like char
+      write_ch(aux, i, y2, HOR_LINE, backcolor, bordercolor,raw);
     }
     for(j = y1; j <= y2; j++) {
       //left and right borders
-      write_ch(aux, x1, j, VER_LINE, backcolor, bordercolor);   //vertical line box-like char
-      write_ch(aux, x2, j, VER_LINE, backcolor, bordercolor);
+      write_ch(aux, x1, j, VER_LINE, backcolor, bordercolor,raw);   //vertical line box-like char
+      write_ch(aux, x2, j, VER_LINE, backcolor, bordercolor,raw);
     }
-    write_ch(aux, x1, y1, UPPER_LEFT_CORNER, backcolor, bordercolor);   //upper-left corner box-like char
-    write_ch(aux, x1, y2, LOWER_LEFT_CORNER, backcolor, bordercolor);   //lower-left corner box-like char
-    write_ch(aux, x2, y1, UPPER_RIGHT_CORNER, backcolor, bordercolor);  //upper-right corner box-like char
-    write_ch(aux, x2, y2, LOWER_RIGHT_CORNER, backcolor, bordercolor);  //lower-right corner box-like char
+    write_ch(aux, x1, y1, UPPER_LEFT_CORNER, backcolor, bordercolor,raw);   //upper-left corner box-like char
+    write_ch(aux, x1, y2, LOWER_LEFT_CORNER, backcolor, bordercolor,raw);   //lower-left corner box-like char
+    write_ch(aux, x2, y1, UPPER_RIGHT_CORNER, backcolor, bordercolor,raw);  //upper-right corner box-like char
+    write_ch(aux, x2, y2, LOWER_RIGHT_CORNER, backcolor, bordercolor,raw);  //lower-right corner box-like char
   }
 
   if (title == TRUE) {
     for(i = x1+1; i <= x2-1; i++)
-      write_ch(aux, i, y1, ' ', titlecolor, titlecolor);
+      write_ch(aux, i, y1, ' ', titlecolor, titlecolor,raw);
   }
 }
 
