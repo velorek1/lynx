@@ -1,5 +1,6 @@
 # lynx
-A TUI with a double screen buffer for terminals
+A TUI in development with a double screen buffer for terminals.
+Screen display is controlled by creating a linked list in memory.
 
 - To compile:
 
