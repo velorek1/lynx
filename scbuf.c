@@ -328,7 +328,7 @@ void update_screen(SCREENCELL *newScreen) {
   SCREENCELL *aux=newScreen;
   if (aux!=NULL && buffersize <= length(&aux)){
   for(i = 0; i < buffersize; i++) {
-      if (aux->toUpdate ==1) update_ch(wherex,wherey,aux->ch,aux->backColor,aux->foreColor); 
+      if (aux->toUpdate ==1) {aux->toUpdate = 0; update_ch(wherex,wherey,aux->ch,aux->backColor,aux->foreColor);} 
       wherex = wherex + 1; //line counter
       if(wherex == sc_columns) {
         //new line
