@@ -18,16 +18,18 @@ LAST MODIFIED : 18/09/2021 Simplified and commented
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <locale.h>
 #include <sys/ioctl.h>
+#include <poll.h>
 #include "rterm.h"
-
+//#include "keyb.h"
 /*====================================================================*/
 /* GLOBAL VARIABLES                                                   */
 /*====================================================================*/
 
 struct winsize max;
-static struct termios term,term2, failsafe;
+static struct termios term, failsafe;
 static int peek_character = -1;
 
 /*====================================================================*/
@@ -37,26 +39,44 @@ static int peek_character = -1;
 /*-------------------------------------*/
 /* Initialize new terminal i/o settings*/
 /*-------------------------------------*/
-void pushTerm() {
+void pushTerm()
+{
 //Save terminal settings in failsafe to be retrived at the end
-  tcgetattr(0, &failsafe);
+	tcgetattr(0, &failsafe);
 }
 
 /*---------------------------*/
 /* Reset terminal to failsafe*/
 /*---------------------------*/
-int resetTerm() {
-  //tcsetattr(0, TCSANOW, &failsafe);
-  /* flush and reset */
-  if (tcsetattr(0,TCSAFLUSH,&failsafe) < 0) return -1;
-  return 0;
+int resetTerm()
+{
+	//tcsetattr(0, TCSANOW, &failsafe);
+	/* flush and reset */
+	if (tcsetattr(0, TCSAFLUSH, &failsafe) < 0)
+		return -1;
+	return 0;
 }
-
 
 /*--------------------------------------.*/
 /* Detect whether a key has been pressed.*/
 /*---------------------------------------*/
 
+int kbhit(int timeout_ms)
+{
+	struct pollfd fds = { STDIN_FILENO, POLLIN, 0 };
+	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+	int ret = poll(&fds, 1, timeout_ms);
+	fcntl(STDIN_FILENO, F_SETFL, 0);
+	if (ret > 0) {
+		return 1;
+	} else if (ret == 0) {
+		return 0;	// timeout occurred
+	} else {
+		return -1;	// error occurred
+	}
+}
+
+/*
 int kbhit()
 {
     if(peek_character != -1)
@@ -73,98 +93,107 @@ int kbhit()
 
     return byteswaiting > 0;
 }
-
+*/
 /*----------------------*/
 /*Read char with control*/
 /*----------------------*/
-int readch() {
-  char    ch;
-  int ret=0;
- if(peek_character != -1) {
-    ch = peek_character;
-    peek_character = -1;
-    return ch;
-  }
-  ret = read(0, &ch, 1);
-  ret = ret; //to avoid warning message
-  return ch;
+int readch()
+{
+	char ch;
+	int ret=0;
+	if (peek_character != -1) {
+		ch = peek_character;
+		peek_character = -1;
+		return ch;
+	}
+	ret = read(0, &ch, 1);
+	ret++;
+	return ch;
 }
 
-void resetch() {
+void resetch()
+{
 //Clear ch
-  term.c_cc[VMIN] = 0;
-  tcsetattr(0, TCSANOW, &term);
-  peek_character = 0;
+	term.c_cc[VMIN] = 0;
+	tcsetattr(0, TCSANOW, &term);
+	peek_character = 0;
 }
 
 /*----------------------------------*/
 /* Move cursor to specified position*/
 /*----------------------------------*/
-void gotoxy(int x, int y) {
-  printf("%c[%d;%df", 0x1B, y, x);
+void gotoxy(int x, int y)
+{
+	printf("%c[%d;%df", 0x1B, y, x);
 }
 
 /*---------------------*/
 /* Change colour output*/
 /*---------------------*/
-void outputcolor(int foreground, int background) {
-  printf("%c[%d;%dm", 0x1b, foreground, background);
+void outputcolor(int foreground, int background)
+{
+	printf("%c[%d;%dm", 0x1b, foreground, background);
 }
 
 /*-----------------------------------------------------*/
 /* Change the whole color of the screen by applying CLS*/
 /*-----------------------------------------------------*/
-void screencol(int x) {
-  gotoxy(0, 0);
-  outputcolor(0, x);
-  printf("%c[2J", 0x1b);
-  outputcolor(0, 0);
+void screencol(int x)
+{
+	gotoxy(0, 0);
+	outputcolor(0, x);
+	printf("%c[2J", 0x1b);
+	outputcolor(0, 0);
 }
 
 /*-----------------------*/
 /* Reset ANSI ATTRIBUTES */
 /*-----------------------*/
-void resetAnsi(int x) {
-  switch (x) {
-    case 0:         //reset all colors and attributes
-      printf("%c[0m", 0x1b);
-      break;
-    case 1:         //reset only attributes
-      printf("%c[20m", 0x1b);
-      break;
-    case 2:         //reset foreg. colors and not attrib.
-      printf("%c[39m", 0x1b);
-      break;
-    case 3:         //reset back. colors and not attrib.
-      printf("%c[49m", 0x1b);
-      break;
-    default:
-      break;
-  }
+void resetAnsi(int x)
+{
+	switch (x) {
+	case 0:		//reset all colors and attributes
+		printf("%c[0m", 0x1b);
+		break;
+	case 1:		//reset only attributes
+		printf("%c[20m", 0x1b);
+		break;
+	case 2:		//reset foreg. colors and not attrib.
+		printf("%c[39m", 0x1b);
+		break;
+	case 3:		//reset back. colors and not attrib.
+		printf("%c[49m", 0x1b);
+		break;
+	default:
+		break;
+	}
 }
 
 /*------------------------*/
 /* Get terminal dimensions*/
 /*------------------------*/
-int get_terminal_dimensions(int *rows, int *columns) {
-  ioctl(0, TIOCGWINSZ, &max);
-  *columns = max.ws_col;
-  *rows = max.ws_row;
-  return 0;
+int get_terminal_dimensions(int *rows, int *columns)
+{
+	ioctl(0, TIOCGWINSZ, &max);
+	*columns = max.ws_col;
+	*rows = max.ws_row;
+	return 0;
 }
 
 /*--------------------------*/
 /* Ansi function hide cursor*/
 /*--------------------------*/
-void hidecursor() {
-  printf("\e[?25l");
+void hidecursor()
+{
+	printf("\e[?25l");
 }
 
 /*--------------------------*/
 /* Ansi function show cursor*/
 /*--------------------------*/
-void showcursor() {
-  printf("\e[?25h");
+void showcursor()
+{
+	printf("\e[?25h");
 }
 
 /*--------------------------*/
@@ -173,47 +202,21 @@ void showcursor() {
 
 //For code simplification purposes
 
-void init_term(){
-  hidecursor();
-  pushTerm();
-  resetch();
-  //Setup unicode  
-  setlocale(LC_ALL, "");
+void init_term()
+{
+	hidecursor();
+	pushTerm();
+	resetch();
+	//Setup unicode  
+	setlocale(LC_ALL, "");
 }
 
-
-void close_term(){
-  showcursor();
-  resetTerm();
-  outputcolor(F_WHITE, B_BLACK);
-  screencol(B_BLACK);
-  resetAnsi(0);
-  printf("\n");
+void close_term()
+{
+	showcursor();
+	resetTerm();
+	outputcolor(F_WHITE, B_BLACK);
+	screencol(B_BLACK);
+	resetAnsi(0);
+	printf("\n");
 }
-/*----------------------------------*/
-/* Read ESC-key char with its trail */
-/*----------------------------------*/
-
-int read_keytrail(char chartrail[5]){
-/*
-   New implementation: Trail of chars found in keyboard.c
-   If K_ESCAPE is captured read a trail up to 5 characters from the console.
-   This is to control the fact that some keys may change
-   according to the terminal and expand the editor's possibilities.
-   Eg: F2 can be either 27 79 81 or 27 91 91 82.
-*/
-char ch;
-int i;
-   chartrail[0] = K_ESCAPE;
-   for(i = 1; i < 5; i++) {
-     if(kbhit() == 1) {
-        ch=readch();
-        chartrail[i] = ch;
-     } else {
-        chartrail[i] = 0;
-     }
-   }
-   resetch();
-   return 1;
-}
-
