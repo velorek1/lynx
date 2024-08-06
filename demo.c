@@ -122,7 +122,7 @@ int keypressed = 0;
     init_term();
     draw_screen();
      do{    
-         keypressed = kbhit();
+         keypressed = kbhit(1);
 
          get_terminal_dimensions(&newsc_rows,&newsc_columns);
 
