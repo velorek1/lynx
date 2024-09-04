@@ -127,9 +127,9 @@ int create_screen(SCREENCELL **newScreen)
 		temp.backColor = B_BLACK;
 		temp.foreColor = F_WHITE;
 		for (i = 0; i < buffersize; i++) {
-			//Except for their index
-			temp.index = i;
-			*aux = addend(*aux, newelement(temp));
+			//Except for their index/ optimization suggested by Maato Mart G
+      			temp.index = buffersize - 1 - i;
+     			 *aux = addfront(*aux, newelement(temp)); 
 		}
 		return 1;
 	} else {
